@@ -1,9 +1,67 @@
-.DS_Store
-*.swp
-*~.nib
+# User-specific files
+*.xcuserdata
 
+# Workspace and project settings
+*.xcworkspace
+!default.xcworkspace/contents.xcworkspacedata
+!default.xcworkspace/xcshareddata
+!default.xcworkspace/xcshareddata/*/
+
+# Build products
 build/
+DerivedData/
 
-*.pbxuser
-*.perspective
-*.perspectivev3
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# Swift Package Manager
+.swiftpm
+.build/
+Package.resolved
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Xcode specific
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+
+# IDE specific
+.idea/
+*.DS_Store
+
+# Logs
+*.log
+
+# Temporary and swap files
+*.swp
+*.swo
+*.tmp
+
+# xcresult files
+*.xcresult
+
+# Generated assets
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Firebase configuration
+GoogleService-Info.plist
+
+# Environment variables
+.env
+.env.*
+
+# Testing output
+test-output/
+*.testresult
