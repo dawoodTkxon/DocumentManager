@@ -13,37 +13,34 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>PHP File</string>
+			<key>UTTypeIdentifier</key>
+			<string>public.php</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<string>php</string>
+				<key>public.mime-type</key>
+				<string>application/x-httpd-php</string>
+			</dict>
+		</dict>
+	</array>
     <key>NSCameraUsageDescription</key>
-    <string>This app requires access to the camera to scan documents.</string>
-
-    <key>UTExportedTypeDeclarations</key>
-    <array>
-        <dict>
-            <key>UTTypeIdentifier</key>
-            <string>public.php</string>
-            <key>UTTypeDescription</key>
-            <string>PHP File</string>
-            <key>UTTypeConformsTo</key>
-            <array>
-                <string>public.data</string>
-            </array>
-            <key>UTTypeTagSpecification</key>
-            <dict>
-                <key>public.filename-extension</key>
-                <string>php</string>
-                <key>public.mime-type</key>
-                <string>application/x-httpd-php</string>
-            </dict>
-        </dict>
-    </array>
-
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>This app requires access to your photo library to select files for upload.</string>
+    <string>We need access to your camera to scan documents.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>We need access to your microphone for document scanning.</string>
     <key>NSCameraUsageDescription</key>
-    <string>This app requires access to your camera to scan documents.</string>
-    <key>UIFileSharingEnabled</key>
-    <true/>
+    <string>Your message explaining why the app needs access to the camera</string>
 
-    
 </dict>
 </plist>

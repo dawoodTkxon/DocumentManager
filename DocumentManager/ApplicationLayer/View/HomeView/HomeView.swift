@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import MapKit
 
+
 struct HomeView: View {
     @State private var companies = [
         Company(
@@ -26,10 +27,14 @@ struct HomeView: View {
     ]
     
     var body: some View {
-        NavigationStack {
+        NavigationSplitView {
             List(companies, id: \.siret) { company in
                 NavigationLink {
-                    CompanyDetailView(company: company)
+                    if #available(iOS 17, *) {
+                        CompanyDetailView(company: company)
+                    } else {
+                        // Fallback on earlier versions
+                    }
                 } label: {
                     Text(company.name)
                         .font(.headline)
@@ -38,16 +43,22 @@ struct HomeView: View {
             .navigationTitle("Companies")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: addCompany) {
+                    NavigationLink {
+                        AddCompanyView { newCompany in
+                            companies.append(newCompany)
+                        }
+                    } label: {
                         Image(systemName: "plus")
+                            .font(.headline)
                     }
                 }
             }
+        } detail: {
+            // Default view when no company is selected (right side for iPad)
+            Text("Select a company to view details.")
+                .font(.subheadline)
+                .foregroundColor(.gray)
         }
-    }
-    
-    private func addCompany() {
-        
     }
 }
 
@@ -57,5 +68,7 @@ struct Company: Identifiable {
     var siret: String
     var primaryLocation: CLLocationCoordinate2D
     var secondaryLocation: CLLocationCoordinate2D
-
 }
+
+
+

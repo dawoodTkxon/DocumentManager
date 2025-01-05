@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 
+@available(iOS 17, *)
 struct DocumentView: View {
     var document: Document
     @Environment(\.presentationMode) var presentationMode
@@ -24,7 +25,7 @@ struct DocumentView: View {
             Spacer()
             
             Button("Close") {
-                presentationMode.wrappedValue.dismiss() 
+                presentationMode.wrappedValue.dismiss() // Dismiss the current view
             }
         }
         .padding()

@@ -8,6 +8,7 @@
 import SwiftUI
 import MapKit
 
+@available(iOS 17, *)
 struct CompanyDetailView: View {
     var company: Company
     
@@ -66,13 +67,13 @@ struct CompanyDetailView: View {
     }
 }
 
-struct Document: Identifiable {
-    var id: String { name }
-    var name: String
-    var type: FileType
-}
-
-enum FileType {
-    case pdf
-    case image
-}
+//struct Document: Identifiable {
+//    var id: String { name }
+//    var name: String
+//    var type: FileType
+//}
+//
+//enum FileType {
+//    case pdf
+//    case image
+//}
