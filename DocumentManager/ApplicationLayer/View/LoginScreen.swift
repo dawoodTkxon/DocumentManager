@@ -10,13 +10,15 @@ import GoogleSignIn
 import GoogleAPIClientForREST
 import GTMSessionFetcher
 import MobileCoreServices
+import PhotosUI
 
 struct LoginScreen: View {
     @StateObject private var viewModel = GoogleDriveViewModel()
     @State private var folderName = "my-folder"
     @State private var isFilePickerPresented = false
     @State private var selectedFileURL: URL?
-
+    @State private var selectedItem: PhotosPickerItem?
+    
     var body: some View {
         VStack(spacing: 20) {
             if viewModel.isSignedIn {
@@ -33,11 +35,7 @@ struct LoginScreen: View {
                 .foregroundColor(.white)
                 .cornerRadius(8)
                 
-                ScannedImageView()
-
-                
-                
-                Button("Pick a File") {
+                Button("Pick a File from Gallery") {
                     isFilePickerPresented = true
                 }
                 .padding()
@@ -50,11 +48,19 @@ struct LoginScreen: View {
                         print("No file selected.")
                         return
                     }
-                    viewModel.uploadFile(name: fileURL.lastPathComponent, fileURL: fileURL, mimeType: "application/octet-stream") { success in
-                        if success {
-                            print("File uploaded successfully.")
-                        } else {
-                            print("File upload failed.")
+                    viewModel.populateFolderID(folderName: folderName) {
+                        guard let folderID = viewModel.uploadFolderID else {
+                            print("Failed to retrieve or create folder ID.")
+                            return
+                        }
+                        print("Folder ID ready: \(folderID). Proceeding with file upload.")
+                        // Upload the file
+                        viewModel.uploadFile(name: fileURL.lastPathComponent, fileURL: fileURL, mimeType: "application/octet-stream") { success in
+                            if success {
+                                print("File uploaded successfully.")
+                            } else {
+                                print("File upload failed.")
+                            }
                         }
                     }
                 }
@@ -80,133 +86,52 @@ struct LoginScreen: View {
                 .background(Color.blue)
                 .foregroundColor(.white)
                 .cornerRadius(8)
-                
-                
-                Button("Upload File") {
-                    guard let fileURL = selectedFileURL else {
-                        print("No file selected.")
-                        return
-                    }
-                    viewModel.uploadFile(name: fileURL.lastPathComponent, fileURL: fileURL, mimeType: "application/octet-stream") { success in
-                        if success {
-                            print("File uploaded successfully.")
-                        } else {
-                            print("File upload failed.")
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.orange)
-                .foregroundColor(.white)
-                .cornerRadius(8)
             }
         }
         .onAppear {
             viewModel.signInSilently()
         }
         .sheet(isPresented: $isFilePickerPresented) {
-            FilePicker { fileURL in
-                selectedFileURL = fileURL
-                if let url = fileURL {
-                    print("File selected: \(url.lastPathComponent)")
-                } else {
-                    print("No file selected.")
-                }
-                isFilePickerPresented = false
-            }
-            
-        }
-        .padding()
-    }
-}
-
-
-
-import SwiftUI
-import VisionKit
-
-struct DocumentScannerView: UIViewControllerRepresentable {
-    @Binding var scannedImages: [UIImage]
-    @Binding var isPresented: Bool
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
-        let scannerViewController = VNDocumentCameraViewController()
-        scannerViewController.delegate = context.coordinator
-        return scannerViewController
-    }
-    
-    func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
-    
-    class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
-        var parent: DocumentScannerView
-        
-        init(_ parent: DocumentScannerView) {
-            self.parent = parent
-        }
-        
-        func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-            controller.dismiss(animated: true) {
-                self.parent.isPresented = false
-            }
-        }
-        
-        func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
-            print("Document scanning failed with error: \(error.localizedDescription)")
-            controller.dismiss(animated: true) {
-                self.parent.isPresented = false
-            }
-        }
-        
-        func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
-            var images: [UIImage] = []
-            for pageIndex in 0..<scan.pageCount {
-                images.append(scan.imageOfPage(at: pageIndex))
-            }
-            parent.scannedImages = images
-            controller.dismiss(animated: true) {
-                self.parent.isPresented = false
-            }
-        }
-    }
-}
-
-struct ContentView: View {
-    @State private var isScannerPresented = false
-    @State private var scannedImages: [UIImage] = []
-    
-    var body: some View {
-        VStack {
-            if !scannedImages.isEmpty {
-                ScrollView {
-                    ForEach(scannedImages, id: \.self) { image in
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .padding()
-                    }
-                }
-            } else {
-                Text("No documents scanned.")
-                    .foregroundColor(.gray)
-            }
-            
-            Button(action: {
-                isScannerPresented = true
-            }) {
-                Text("Scan Document")
-                    .font(.headline)
+            PhotosPicker(
+                selection: $selectedItem,
+                matching: .any(of: [.images, .videos]),
+                preferredItemEncoding: .current
+            ) {
+                Text("Pick a File from Gallery")
                     .padding()
                     .background(Color.blue)
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
+            .onChange(of: selectedItem) { newItem in
+                guard let newItem = newItem else {
+                    print("Item selection failed.")
+                    return
+                }
+                print("Item selected: \(newItem)")
+                Task {
+                    // Retrieve selected item from Photos Library
+                    if let selectedAsset = try? await newItem.loadTransferable(type: Data.self),
+                       let fileURL = saveToFileSystem(data: selectedAsset) {
+                        selectedFileURL = fileURL
+                        print("File selected: \(fileURL.lastPathComponent)")
+                    }
+                }
+            }
         }
-        .sheet(isPresented: $isScannerPresented) {
-            DocumentScannerView(scannedImages: $scannedImages, isPresented: $isScannerPresented)
+        .padding()
+    }
+    
+    func saveToFileSystem(data: Data) -> URL? {
+        let fileManager = FileManager.default
+        let tempURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".jpg")
+        do {
+            try data.write(to: tempURL)
+            return tempURL
+        } catch {
+            print("Error saving file: \(error.localizedDescription)")
+            return nil
         }
     }
 }
+

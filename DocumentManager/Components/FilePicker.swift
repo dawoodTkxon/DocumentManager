@@ -9,35 +9,35 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct FilePicker: UIViewControllerRepresentable {
-    var onPicked: (URL?) -> Void
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onPicked: onPicked)
-    }
+struct FilePicker: UIViewControllerRepresentable {
+    var completion: (URL?) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.data, UTType.content, UTType.item])
-        picker.delegate = context.coordinator
-        picker.allowsMultipleSelection = false
-        return picker
+        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.item])
+        documentPicker.delegate = context.coordinator
+        return documentPicker
     }
 
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
 
-    class Coordinator: NSObject, UIDocumentPickerDelegate {
-        var onPicked: (URL?) -> Void
+    func makeCoordinator() -> Coordinator {
+        Coordinator(completion: completion)
+    }
 
-        init(onPicked: @escaping (URL?) -> Void) {
-            self.onPicked = onPicked
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let completion: (URL?) -> Void
+
+        init(completion: @escaping (URL?) -> Void) {
+            self.completion = completion
         }
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            onPicked(urls.first) // Select the first file
+            completion(urls.first)
         }
 
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            onPicked(nil) // Handle cancellation
+            completion(nil)
         }
     }
 }

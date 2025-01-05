@@ -6,7 +6,7 @@ target 'DocumentManager' do
   use_frameworks!
 
   # Pods for DocumentManager
-    pod 'GoogleSignIn', '~> 6.0'
-   pod 'GoogleAPIClientForREST/Drive', '~> 1.3.7'
+  pod 'GoogleSignIn', '~> 6.0'
+  pod 'GoogleAPIClientForREST/Drive', '~> 1.3.7'
 
 end

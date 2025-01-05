@@ -16,7 +16,7 @@ struct DocumentManagerApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     var body: some Scene {
         WindowGroup {
-            LoginScreen()
+            HomeView()
                 .onOpenURL { url in
                     GIDSignIn.sharedInstance.handle(url)
                 }

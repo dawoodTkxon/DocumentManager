@@ -16,5 +16,34 @@
     <key>NSCameraUsageDescription</key>
     <string>This app requires access to the camera to scan documents.</string>
 
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>public.php</string>
+            <key>UTTypeDescription</key>
+            <string>PHP File</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.data</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <string>php</string>
+                <key>public.mime-type</key>
+                <string>application/x-httpd-php</string>
+            </dict>
+        </dict>
+    </array>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app requires access to your photo library to select files for upload.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>This app requires access to your camera to scan documents.</string>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+
+    
 </dict>
 </plist>
