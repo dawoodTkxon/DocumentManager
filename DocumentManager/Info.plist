@@ -9,7 +9,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.1008713916759-8rrrh8ifpt8gu90409pnoghor0j4k5k5</string>
+				<string>com.googleusercontent.apps.1008713916759-a9aph1jlqi5infr26sf7ub3vs428nfji</string>
 			</array>
 		</dict>
 	</array>
@@ -35,12 +35,5 @@
 			</dict>
 		</dict>
 	</array>
-    <key>NSCameraUsageDescription</key>
-    <string>We need access to your camera to scan documents.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>We need access to your microphone for document scanning.</string>
-    <key>NSCameraUsageDescription</key>
-    <string>Your message explaining why the app needs access to the camera</string>
-
 </dict>
 </plist>

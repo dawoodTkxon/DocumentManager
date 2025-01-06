@@ -7,10 +7,14 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 import MapKit
 
+@available(iOS 17, *)
 struct AddCompanyView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    
     @State private var name = ""
     @State private var siret = ""
     @State private var primaryLatitude = ""
@@ -18,8 +22,6 @@ struct AddCompanyView: View {
     @State private var secondaryLatitude = ""
     @State private var secondaryLongitude = ""
     
-    var onAddCompany: (Company) -> Void
-
     var body: some View {
         VStack {
             Form {
@@ -54,14 +56,38 @@ struct AddCompanyView: View {
                             return
                         }
                         
-                        let newCompany = Company(
+                        let newCompany = CompanyModel(
                             name: name,
                             siret: siret,
                             primaryLocation: CLLocationCoordinate2D(latitude: primaryLat, longitude: primaryLon),
-                            secondaryLocation: CLLocationCoordinate2D(latitude: secondaryLat, longitude: secondaryLon)
-                        )
+                            secondaryLocation: CLLocationCoordinate2D(latitude: secondaryLat, longitude: secondaryLon)                        )
+                        modelContext.insert(newCompany)
                         
-                        onAddCompany(newCompany)
+                        do {
+                            try modelContext.save()
+                            print("Company saved successfully.")
+                        } catch {
+                            print("Failed to save company: \(error)")
+                        }
+                        
+                        GoogleDriveSingletonClass.shared.signInSilently()
+                        if !GoogleDriveSingletonClass.shared.folderCreated {
+                            GoogleDriveSingletonClass.shared.createFolder(name: name) { folderID in
+                                if let folderID = folderID {
+                                    newCompany.folderID = folderID
+                                    do {
+                                        try modelContext.save()
+                                        print("Company saved successfully with folderID: \(folderID).")
+                                    } catch {
+                                        print("Failed to save company: \(error)")
+                                    }
+                                } else {
+                                    print("Failed to create folder.")
+                                }
+                            }
+                            
+                        }
+                        
                         dismiss()
                     }
                 }

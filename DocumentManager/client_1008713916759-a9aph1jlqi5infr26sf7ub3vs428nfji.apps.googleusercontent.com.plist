@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>1008713916759-8rrrh8ifpt8gu90409pnoghor0j4k5k5.apps.googleusercontent.com</string>
+	<string>1008713916759-a9aph1jlqi5infr26sf7ub3vs428nfji.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1008713916759-8rrrh8ifpt8gu90409pnoghor0j4k5k5</string>
+	<string>com.googleusercontent.apps.1008713916759-a9aph1jlqi5infr26sf7ub3vs428nfji</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.DocumentManager</string>
+	<string>com.DocumentManager.mubeen</string>
 </dict>
 </plist>

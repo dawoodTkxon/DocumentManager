@@ -7,29 +7,33 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 
 @available(iOS 17, *)
 struct DocumentView: View {
-    var document: Document
+    var document: DocumentModel
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) var dismiss
+
     var body: some View {
         VStack {
-            if document.type == .pdf {
-                Text("PDF Preview: \(document.name)")
-            } else {
-                Image(systemName: "photo")
+            if let imageData = UIImage(data: document.imageData){
+                Image(uiImage: imageData)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 300, height: 300)
-            }
-            Spacer()
-            
-            Button("Close") {
-                presentationMode.wrappedValue.dismiss() // Dismiss the current view
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black)
+                    .onTapGesture {
+                        dismiss()
+                    }
             }
         }
         .padding()
         .navigationTitle(document.name)
+        .navigationBarTitleDisplayMode(.large)
+        .onAppear{
+  
+        }
     }
 }
 

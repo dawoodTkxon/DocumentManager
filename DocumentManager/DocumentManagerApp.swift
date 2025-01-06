@@ -6,11 +6,13 @@
 //
 
 import SwiftUI
+import SwiftData
 
 import GoogleSignIn
 import GoogleAPIClientForREST
 import SwiftUI
 
+@available(iOS 17, *)
 @main
 struct DocumentManagerApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -20,7 +22,10 @@ struct DocumentManagerApp: App {
                 .onOpenURL { url in
                     GIDSignIn.sharedInstance.handle(url)
                 }
+                .modelContainer(for: CompanyModel.self)
+
         }
+        
     }
 }
 
