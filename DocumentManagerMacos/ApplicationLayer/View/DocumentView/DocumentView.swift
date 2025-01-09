@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import AppKit
 
 @available(iOS 17, *)
 struct DocumentView: View {
@@ -17,8 +18,8 @@ struct DocumentView: View {
 
     var body: some View {
         VStack {
-            if let imageData = UIImage(data: document.imageData ?? Data()){
-                Image(uiImage: imageData)
+            if let imageData = NSImage(data: document.imageData ?? Data()){
+                Image(nsImage: imageData)
                     .resizable()
                     .scaledToFit()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -30,7 +31,7 @@ struct DocumentView: View {
         }
         .padding()
         .navigationTitle(document.name ?? "n/a")
-        .navigationBarTitleDisplayMode(.large)
+      //  .navigationBarTitleDisplayMode(.large)
         .onAppear{
   
         }

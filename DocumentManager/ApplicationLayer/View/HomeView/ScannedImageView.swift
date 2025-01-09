@@ -21,89 +21,101 @@ struct ScannedImageView: View {
     @State private var documentName: String = ""
     @Environment(\.presentationMode) var presentationMode
     let company: CompanyModel
+    @State private var selectedDocument: DocumentModel?
     @Environment(\.modelContext) private var modelContext
     @State private var showAlert = false
+    @State private var isUploading = false
     @State private var alertMessage = ""
     var body: some View {
-        VStack {
-            Form {
-                Section(header: Text("Fields")) {
-                    Text("POLICASTRO SERVICES")
-                        .font(.headline)
-                    Text("Boréale Project")
-                        .font(.subheadline)
+        ZStack{
+            if isUploading {
+                ProgressView("Uploading...")
+                    .padding()
+            }
+            VStack {
+                Form {
+                    Section(header: Text("Fields")) {
+                        Text("POLICASTRO SERVICES")
+                            .font(.headline)
+                        Text("Boréale Project")
+                            .font(.subheadline)
+                        
+                        TextField("Document Name", text: $documentName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.none)
+                    }
                     
-                    TextField("Document Name", text: $documentName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocapitalization(.none)
-                }
-                
-                Section(header: Text("Scanned Documents")) {
-                    if scannedImages.isEmpty {
-                        Text("No documents scanned.")
-                            .foregroundColor(.gray)
-                    } else {
-                        ScrollView {
-                            ForEach(scannedImages, id: \.self) { image in
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(maxHeight: 200)
-                                    .padding()
+                    Section(header: Text("Scanned Documents")) {
+                        if scannedImages.isEmpty {
+                            Text("No documents scanned.")
+                                .foregroundColor(.gray)
+                        } else {
+                            ScrollView {
+                                ForEach(scannedImages, id: \.self) { image in
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(maxHeight: 200)
+                                        .padding()
+                                }
                             }
                         }
+                        Button(action: {
+                            isScannerPresented = true
+                        }) {
+                            Label("Scan Document", systemImage: "doc.text.viewfinder")
+                                .font(.headline)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
                     }
-                    Button(action: {
-                        isScannerPresented = true
-                    }) {
-                        Label("Scan Document", systemImage: "doc.text.viewfinder")
-                            .font(.headline)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
+                    
+                    Section {
+                        Button("Save") {
+                            saveScannedDocument()
+                            
+                        }
+                        .disabled(documentName.isEmpty || scannedImages.isEmpty)
+                        
+                        Button("Cancel") {
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                        .foregroundColor(.red)
                     }
                 }
-                
-                Section {
-                    Button("Save") {
-                         saveScannedDocument()
-                    }
-                    .disabled(documentName.isEmpty || scannedImages.isEmpty)
-                    
-                    Button("Cancel") {
+                .navigationTitle("Scanner")
+                .alert("Confirmation", isPresented: $showAlert) {
+                    Button("OK") {
                         presentationMode.wrappedValue.dismiss()
                     }
-                    .foregroundColor(.red)
+                } message: {
+                    Text(alertMessage)
                 }
-            }
-            .navigationTitle("Scanner")
-            .alert("Confirmation", isPresented: $showAlert) {
-                Button("OK") {
-                    presentationMode.wrappedValue.dismiss()
-                }
-            } message: {
-                Text(alertMessage)
-            }
-            .sheet(isPresented: $isScannerPresented) {
-                
-                if !isMac() {
-                    DocumentScannerView(scannedImages: $scannedImages, isPresented: $isScannerPresented)
+                .sheet(isPresented: $isScannerPresented) {
                     
-                } else {
-                    ContinuityCameraView(scannedImages: $scannedImages, isPresented: $isScannerPresented)
-                    
+                    if !isMac() {
+                        DocumentScannerView(scannedImages: $scannedImages, isPresented: $isScannerPresented)
+                        
+                    } else {
+                        ContinuityCameraView(scannedImages: $scannedImages, isPresented: $isScannerPresented)
+                        
+                        
+                    }
                     
                 }
-                
             }
         }
         
     }
-    
+    private func handleDocumentTap(_ document: DocumentModel) {
+        
+        selectedDocument = document
+    }
     private func saveScannedDocument() {
         guard !documentName.isEmpty, let scannedImage = scannedImages.first else { return }
-            
+        
         let imageName = "\(documentName)_image.jpg"  // You can modify this as needed
         
         guard let imageData = scannedImage.jpegData(compressionQuality: 0.8) else { return }
@@ -118,17 +130,41 @@ struct ScannedImageView: View {
         
         modelContext.insert(newDocument)
         
-        // Save the context
-        do {
-            try modelContext.save()
-            print("Document saved successfully.")
-            alertMessage = "Document saved successfully."
-            showAlert = true
-        } catch {
-            print("Failed to save document: \(error)")
-            alertMessage = "Failed to save document. Please try again."
-            showAlert = true
+        if let imageURL = newDocument.generateImageURL() {
+            isUploading = true
+            GoogleDriveSingletonClass.shared.uploadFile(
+                name: newDocument.name ?? "n/a",
+                folderID: company.folderID,
+                fileURL: imageURL,
+                mimeType: "image/jpeg",
+                completion: { success in
+                    if success {
+                        // Save the context
+                        do {
+                            try modelContext.save()
+                            print("Document saved successfully.")
+                            isUploading = false
+                            alertMessage = "Document saved successfully."
+                            showAlert = true
+                        } catch {
+                            print("Failed to save document: \(error)")
+                            isUploading = false
+                            alertMessage = "Failed to save document. Please try again."
+                            showAlert = true
+                        }
+                        print("File uploaded successfully.")
+                    } else {
+                        isUploading = false
+                        print("Failed to upload file.")
+                        print("\(company.folderID)")
+                        alertMessage = "Failed to upload file."
+                        showAlert = true
+                    }
+                })
+            
         }
+        
+        
     }
     private func uploadToGoogleDrive(scannedImages: [UIImage], name: String, completion: @escaping (Result<String, Error>) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
