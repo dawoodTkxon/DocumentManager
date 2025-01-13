@@ -15,6 +15,7 @@ import AppKit
 struct AddCompanyView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var vm: CloudKitViewModel
 
     @State private var name = ""
     @State private var siret = ""
@@ -23,7 +24,7 @@ struct AddCompanyView: View {
     @State private var secondaryLatitude = ""
     @State private var secondaryLongitude = ""
 
-    @State private var isSaving = false // State for ProgressView
+    @State private var isSaving = false
 
     var body: some View {
         HStack {
@@ -41,17 +42,8 @@ struct AddCompanyView: View {
 
             Spacer()
         }
-        .disabled(isSaving) // Disable inputs while saving
-        .overlay {
-            if isSaving {
-                Color.black.opacity(0.3) // Dim background during save
-                    .ignoresSafeArea()
-            }
-            if isSaving {
-                ProgressView("Saving...")
-                    .padding()
-            }
-        }
+        .disabled(isSaving)
+        .background(Group { if isSaving{LoaderView()}})
     }
 
     // MARK: - Sections
@@ -103,14 +95,12 @@ struct AddCompanyView: View {
             TextField("", text: text)
                 .frame(maxWidth: 300)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: text.wrappedValue) { newValue in
-                    print("\(title): \(newValue)")
-                }
         }
     }
 
     // MARK: - Save Logic
     private func saveCompany() {
+        isSaving = true
         guard let primaryLat = Double(primaryLatitude),
               let primaryLon = Double(primaryLongitude),
               let secondaryLat = Double(secondaryLatitude),
@@ -119,13 +109,13 @@ struct AddCompanyView: View {
             return
         }
 
-        isSaving = true // Start showing ProgressView
+        isSaving = true
 
         let newCompany = CompanyModel(
             name: name,
             siret: siret,
             primaryLocation: CLLocationCoordinate2D(latitude: primaryLat, longitude: primaryLon),
-            secondaryLocation: CLLocationCoordinate2D(latitude: secondaryLat, longitude: secondaryLon)
+            secondaryLocation: CLLocationCoordinate2D(latitude: secondaryLat, longitude: secondaryLon), folderID: ""
         )
 
         modelContext.insert(newCompany)
@@ -134,17 +124,28 @@ struct AddCompanyView: View {
             try modelContext.save()
             print("Company saved successfully.")
 
-            GoogleDriveSingletonClass.shared.signInSilently()
-            if !GoogleDriveSingletonClass.shared.folderCreated {
-                GoogleDriveSingletonClass.shared.createFolder(name: name) { folderID in
+             if !GoogleSignInManager.shared.folderCreated {
+                GoogleSignInManager.shared.createFolder(name: name) { folderID in
                     DispatchQueue.main.async {
                         if let folderID = folderID {
                             newCompany.folderID = folderID
                             do {
                                 try modelContext.save()
                                 print("Company saved successfully with folderID: \(folderID).")
-                                isSaving = false // Stop showing ProgressView
+
+                                Task {
+                                    try await vm.addCompnay(
+                                        name: name,
+                                        siret: siret,
+                                        primaryLocationLatitude: primaryLat,
+                                        primaryLocationLongitude: primaryLon,
+                                        secondaryLocationLatitude: secondaryLat,
+                                        secondaryLocationLongitude: secondaryLon, folderID:  newCompany.folderID
+                                   
+                                    )
+                                }
                                 dismiss()
+
                             } catch {
                                 print("Failed to save company: \(error)")
                                 isSaving = false
@@ -157,7 +158,6 @@ struct AddCompanyView: View {
                 }
             } else {
                 isSaving = false
-                dismiss()
             }
         } catch {
             print("Failed to save company: \(error)")

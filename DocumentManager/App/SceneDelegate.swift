@@ -53,8 +53,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 debugPrint("Error accepting CloudKit Share: \(error)")
             }
         }
-
-        operation.qualityOfService = .utility
-        container.add(operation)
+        
+        DispatchQueue.main.async {
+            operation.qualityOfService = .utility
+            container.add(operation)
+            NotificationCenter.default.post(name: Notification.Name("FetchData"), object: nil)
+        }
     }
 }

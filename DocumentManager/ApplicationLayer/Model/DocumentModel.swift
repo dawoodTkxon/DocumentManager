@@ -39,13 +39,8 @@ class DocumentModel {
     
     
       var type: FileType {
-          get {
-              // Provide a default value when typeRawValue is nil or invalid
-              return FileType(rawValue: typeRawValue ?? FileType.unknown.rawValue) ?? .unknown
-          }
-          set {
-              typeRawValue = newValue.rawValue
-          }
+          get {return FileType(rawValue: typeRawValue ?? FileType.unknown.rawValue) ?? .unknown}
+          set {typeRawValue = newValue.rawValue}
       }
     
     func generateImageURL() -> URL? {
@@ -65,6 +60,34 @@ class DocumentModel {
                 return nil
             }
         }
+    func compareImageURLs(existingImageURL: URL?, currentImageURL: URL?) -> Bool {
+        guard
+            let existingURL = existingImageURL,
+            let currentURL = currentImageURL
+        else {
+            print("One or both URLs are nil.")
+            return false
+        }
+
+        do {
+            // Fetch the image data from the URLs
+            let existingImageData = try Data(contentsOf: existingURL)
+            let currentImageData = try Data(contentsOf: currentURL)
+
+            // Compare the data
+            if existingImageData == currentImageData {
+                print("The images are identical.")
+                return true
+            } else {
+                print("The images are different.")
+                return false
+            }
+        } catch {
+            print("Error fetching image data: \(error)")
+            return false
+        }
+    }
+
 }
 #endif
 
@@ -78,11 +101,11 @@ import Foundation
 @Model
 class DocumentModel: Identifiable {
     var id = UUID()
-    var name: String? // Optional name
-    var typeRawValue: String? // Optional raw value for type
-    var company: CompanyModel? // Optional company reference
-    var imageData: Data? // Optional image data
-    var imageName: String? // Optional image name
+    var name: String? 
+    var typeRawValue: String?
+    var company: CompanyModel?
+    var imageData: Data?
+    var imageName: String?
     
     init(name: String?, type: FileType?, company: CompanyModel?, image: NSImage?, imageName: String?) {
         self.id = UUID()

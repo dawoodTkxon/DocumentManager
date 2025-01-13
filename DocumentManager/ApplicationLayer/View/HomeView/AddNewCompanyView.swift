@@ -23,7 +23,7 @@ struct AddCompanyView: View {
     @State private var secondaryLatitude = ""
     @State private var secondaryLongitude = ""
     
-    @State private var isSaving = false // Add this state for tracking saving progress
+    @State private var isSaving = false
     @State private var errorMessage: String?
     
     let onCancel: (() -> Void)?
@@ -35,30 +35,35 @@ struct AddCompanyView: View {
                     Form {
                         Section(header: Text("Company Info")) {
                             TextField("Name", text: $name)
-                            TextField("SIRET", text: $siret)
+                                .keyboardType(.asciiCapable)
+                            TextField("Siret", text: $siret)
+                                .keyboardType(.numberPad)
+                            
                         }
                         
                         Section(header: Text("Primary Location")) {
                             TextField("Latitude", text: $primaryLatitude)
+                                .keyboardType(.decimalPad)
+                            
                             TextField("Longitude", text: $primaryLongitude)
+                                .keyboardType(.decimalPad)
+                            
                         }
                         
                         Section(header: Text("Secondary Location")) {
                             TextField("Latitude", text: $secondaryLatitude)
+                                .keyboardType(.decimalPad)
+                            
                             TextField("Longitude", text: $secondaryLongitude)
+                                .keyboardType(.decimalPad)
+                            
                         }
                     }
                 }
                 
                 if isSaving {
-                    ProgressView("Saving...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.opacity(0.5))
-                        .cornerRadius(10)
+                    LoaderView()
                 }
-                
                 
             }
             .navigationTitle("Add Company")
@@ -72,7 +77,7 @@ struct AddCompanyView: View {
                     Button(action: {
                         isSaving = true
                         errorMessage = nil
-
+                        
                         guard let primaryLat = Double(primaryLatitude),
                               let primaryLon = Double(primaryLongitude),
                               let secondaryLat = Double(secondaryLatitude),
@@ -90,19 +95,16 @@ struct AddCompanyView: View {
                         )
                         
                         modelContext.insert(newCompany)
-
+                        
                         Task {
                             do {
                                 try modelContext.save()
-
-                                GoogleDriveSingletonClass.shared.signInSilently()
-                                if !GoogleDriveSingletonClass.shared.folderCreated {
-                                    GoogleDriveSingletonClass.shared.createFolder(name: name) { folderID in
+                                if !GoogleSignInManager.shared.folderCreated {
+                                    GoogleSignInManager.shared.createFolder(name: name) { folderID in
                                         if let folderID = folderID {
                                             newCompany.folderID = folderID
                                             do {
                                                 try modelContext.save()
-                                                print("Company saved successfully with folderID: \(folderID).")
                                                 Task {
                                                     try await vm.addCompnay(
                                                         name: name,
@@ -110,22 +112,26 @@ struct AddCompanyView: View {
                                                         primaryLocationLatitude: primaryLat,
                                                         primaryLocationLongitude: primaryLon,
                                                         secondaryLocationLatitude: secondaryLat,
-                                                        secondaryLocationLongitude: secondaryLon, folderID:  newCompany.folderID
+                                                        secondaryLocationLongitude: secondaryLon,
+                                                        folderID:  newCompany.folderID
                                                     )
+                                                    isSaving = false
+                                                    dismiss()
                                                 }
                                             } catch {
                                                 errorMessage = "Failed to save company: \(error.localizedDescription)"
+                                                isSaving = false
                                             }
                                         } else {
                                             errorMessage = "Failed to create folder."
+                                            isSaving = false
                                         }
                                     }
                                 }
-                                dismiss()
                             } catch {
                                 errorMessage = "Failed to save company: \(error.localizedDescription)"
+                                isSaving = false
                             }
-                            isSaving = false
                         }
                     }) {
                         Text("Save")
@@ -135,3 +141,7 @@ struct AddCompanyView: View {
         }
     }
 }
+
+
+
+

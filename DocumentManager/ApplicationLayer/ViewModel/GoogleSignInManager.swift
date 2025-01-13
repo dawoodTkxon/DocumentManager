@@ -21,8 +21,7 @@ import MobileCoreServices
 import AppKit
 #endif
 
-
-class GoogleDriveSingletonClass {
+class GoogleSignInManager {
     var googleDriveService = GTLRDriveService()
     var googleUser: GIDGoogleUser?
     var isSignedIn = false
@@ -33,11 +32,9 @@ class GoogleDriveSingletonClass {
     private let signInConfigMacos = GIDConfiguration(clientID: "1008713916759-g5giuoegaerd5efad3h72158a2vmpa6d.apps.googleusercontent.com")
     
     // Singleton instance
-    static let shared = GoogleDriveSingletonClass()
+    static let shared = GoogleSignInManager()
     
     private init() {
-        //        GIDSignIn.sharedInstance.scopes = [kGTLRAuthScopeDrive]
-        //        GIDSignIn.sharedInstance
     }
     
     
@@ -53,7 +50,7 @@ class GoogleDriveSingletonClass {
     
     
 #if os(macOS)
-    func signIn(presenting window: NSWindow) {
+    func signIn(presenting window: NSWindow, completion: @escaping () -> Void) {
         GIDSignIn.sharedInstance.signIn(with: signInConfigMacos, presenting: window) { [weak self] user, error in
             if let error = error {
                 print("Sign-in failed: \(error.localizedDescription)")
@@ -67,15 +64,13 @@ class GoogleDriveSingletonClass {
                         service.authorizer = user.authentication.fetcherAuthorizer()
                     }
                     self?.googleDriveService = service
-                    self?.googleUser = newUser
+                    self?.googleUser = user
                     self?.isSignedIn = true
-                    self?.userName = newUser?.profile?.name
-                    
+                    self?.userName = user.profile?.name
+                    completion()
                     
                     print("Google ID: \(user.userID ?? "No ID")")
                     print("User Name: \(user.profile?.name ?? "No Name")")
-                    print("New Google ID: \(newUser?.userID ?? "No ID")")
-                    print("New User Name: \(newUser?.profile?.name ?? "No Name")")
                 }
             }
         }
@@ -93,20 +88,19 @@ class GoogleDriveSingletonClass {
                 GIDSignIn.sharedInstance.addScopes([kGTLRAuthScopeDrive], presenting: viewController) { newUser, newError in
                     
                     let service = GTLRDriveService()
+                    
                     if let user = GIDSignIn.sharedInstance.currentUser {
                         service.authorizer = user.authentication.fetcherAuthorizer()
                     }
                     self?.googleDriveService = service
-                    self?.googleUser = newUser
+                    self?.googleUser = user
                     self?.isSignedIn = true
-                    self?.userName = newUser?.profile?.name
+                    self?.userName = user.profile?.name
                     completion()
                     
                     print("Google ID: \(user.userID ?? "No ID")")
                     print("User Name: \(user.profile?.name ?? "No Name")")
-                    print("User Name: \(user.profile?.email ?? "No Name")")
-                    print("New Google ID: \(newUser?.userID ?? "No ID")")
-                    print("New User Name: \(newUser?.profile?.name ?? "No Name")")
+                    
                 }
             }
         }
@@ -122,20 +116,34 @@ class GoogleDriveSingletonClass {
     }
     
     
-    func signInSilently() {
+    func signInSilently(completion: @escaping () -> Void) {
         GIDSignIn.sharedInstance.restorePreviousSignIn { [weak self] user, error in
             if let user = user {
+                print("===================")
+                print("had signin")
+                
+                
+                let service = GTLRDriveService()
+                
+                if let user = GIDSignIn.sharedInstance.currentUser {
+                    service.authorizer = user.authentication.fetcherAuthorizer()
+                }
+                self?.googleDriveService = service
                 self?.googleUser = user
                 self?.isSignedIn = true
                 self?.userName = user.profile?.name
+                completion()
             } else if let error = error {
+                print("===================")
+                print("Signed out")
                 print("Silent Sign-In failed: \(error.localizedDescription)")
+                completion()
             }
         }
     }
     
     func getFolderID(name: String, completion: @escaping (String?) -> Void) {
-        guard let user = googleUser else { return }
+        guard googleUser != nil else { return }
         
         let query = GTLRDriveQuery_FilesList.query()
         query.spaces = "drive"
@@ -154,11 +162,6 @@ class GoogleDriveSingletonClass {
     }
     
     func createFolder(name: String, completion: @escaping (String?) -> Void) {
-        //        guard let googleDriveService = self.googleDriveService else {
-        //            completion(nil)
-        //            return
-        //        }
-        
         let folder = GTLRDrive_File()
         folder.mimeType = "application/vnd.google-apps.folder"
         folder.name = name
@@ -171,31 +174,39 @@ class GoogleDriveSingletonClass {
                 print("Error creating folder: \(error.localizedDescription)")
                 completion(nil)
             } else if let folder = file as? GTLRDrive_File, let folderId = folder.identifier {
-                self.uploadFolderID = folderId // Save the folder ID to the singleton
                 print("Folder created with ID: \(folderId)")
                 
-                completion(folderId)
+                // Add public access permission
+                let permission = GTLRDrive_Permission()
+                permission.type = "anyone"
+                permission.role = "reader"
+                
+                let permissionQuery = GTLRDriveQuery_PermissionsCreate.query(withObject: permission, fileId: folderId)
+                self.googleDriveService.executeQuery(permissionQuery) { (permissionTicket, _, permissionError) in
+                    if let permissionError = permissionError {
+                        print("Error setting public permissions: \(permissionError.localizedDescription)")
+                        completion(nil)
+                    } else {
+                        print("Folder set to public access")
+                        completion(folderId)
+                    }
+                }
             } else {
                 completion(nil)
             }
         }
     }
     
-    func uploadFile( name: String, folderID: String, fileURL: URL, mimeType: String,completion: @escaping (Bool) -> Void
-    ) {
-        // Create a Google Drive file object
+    func uploadFile( name: String, folderID: String, fileURL: URL, mimeType: String,completion: @escaping (Bool) -> Void) {
         let file = GTLRDrive_File()
         file.name = name
-        file.parents = [folderID] // Use the provided folder ID
-        //        file.parents = [uploadFolderID] // Use the provided folder ID
+        file.parents = [folderID]
         
         // Define upload parameters
         let uploadParameters = GTLRUploadParameters(fileURL: fileURL, mimeType: mimeType)
         
         // Create the upload query
         let query = GTLRDriveQuery_FilesCreate.query(withObject: file, uploadParameters: uploadParameters)
-        
-        // Execute the upload
         
         googleDriveService.executeQuery(query) { (ticket, file, error) in
             if let error = error {
@@ -209,4 +220,70 @@ class GoogleDriveSingletonClass {
             }
         }
     }
+    
+    func checkForAlreadyLogin(completion: @escaping () -> Void){
+        if GIDSignIn.sharedInstance.hasPreviousSignIn() {
+            print("===================")
+            print("had signin")
+            signInSilently {
+                completion()
+            }
+            
+        } else {
+            completion()
+            print("===================")
+            print("Signed out")
+        }
+    }
+    
+    func downloadFile(fileID: String, completion: @escaping (URL?) -> Void) {
+        let query = GTLRDriveQuery_FilesGet.queryForMedia(withFileId: fileID)
+        
+        googleDriveService.executeQuery(query) { (_, file, error) in
+            if let error = error {
+                print("Error downloading file: \(error.localizedDescription)")
+                completion(nil)
+            } else if let file = file as? GTLRDataObject {
+                do {
+                    let tempURL = try self.writeToTemporaryDirectory(data: file.data, fileName: fileID)
+                    completion(tempURL)
+                } catch {
+                    print("Error writing to temporary directory: \(error.localizedDescription)")
+                    completion(nil)
+                }
+            } else {
+                completion(nil)
+            }
+        }
+    }
+    
+    private func writeToTemporaryDirectory(data: Data, fileName: String) throws -> URL {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileURL = tempDirectory.appendingPathComponent(fileName)
+        try data.write(to: fileURL)
+        return fileURL
+    }
+    func listFiles(inFolder folderID: String, completion: @escaping ([GTLRDrive_File]?) -> Void) {
+        guard isSignedIn else {
+            print("User is not signed in.")
+            completion(nil)
+            return
+        }
+        
+        let query = GTLRDriveQuery_FilesList.query()
+        query.q = "'\(folderID)' in parents and trashed = false"
+        query.fields = "files(id, name, mimeType, modifiedTime)"
+        
+        googleDriveService.executeQuery(query) { (_, result, error) in
+            if let error = error {
+                print("Error fetching files: \(error.localizedDescription)")
+                completion(nil)
+            } else if let fileList = result as? GTLRDrive_FileList {
+                completion(fileList.files)
+            } else {
+                completion(nil)
+            }
+        }
+    }
+    
 }

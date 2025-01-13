@@ -31,7 +31,6 @@ struct DocumentView: View {
         }
         .padding()
         .navigationTitle(document.name ?? "n/a")
-      //  .navigationBarTitleDisplayMode(.large)
         .onAppear{
   
         }

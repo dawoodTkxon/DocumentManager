@@ -16,14 +16,16 @@ import CloudKit
 @Model
 class CompanyModel {
     var id =  UUID()
-    var name: String? = ""
-    var siret: String? = ""
-    var primaryLocationLatitude: Double? = 0.0
-    var primaryLocationLongitude: Double? = 0.0
-    var secondaryLocationLatitude: Double? = 0.0
-    var secondaryLocationLongitude: Double? = 0.0
+    var name: String = ""
+    var siret: String = ""
+    var primaryLocationLatitude: Double = 0.0
+    var primaryLocationLongitude: Double = 0.0
+    var secondaryLocationLatitude: Double = 0.0
+    var secondaryLocationLongitude: Double = 0.0
     var documents: [DocumentModel] = []
     var folderID: String = ""
+    var isCompleted: Bool = false
+
 
     init(name: String, siret: String, primaryLocation: CLLocationCoordinate2D, secondaryLocation: CLLocationCoordinate2D, folderID: String?) {
         self.name = name
@@ -39,6 +41,7 @@ class CompanyModel {
     init(){
         
     }
+    
 }
 
 
@@ -62,8 +65,6 @@ struct CompanayRemoteModel: Identifiable {
 
 @available(iOS 17, *)
 extension CompanayRemoteModel {
-    /// Initializes a `Contact` object from a CloudKit record.
-    /// - Parameter record: CloudKit record to pull values from.
     init?(record: CKRecord) {
         guard let name = record["name"] as? String,
               let siret = record["siret"] as? String,
